@@ -1,0 +1,20 @@
+# Terraform state, cache, and sensitive files
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform/variables.tf
+*.tfvars
+*.tfvars.json
+# Node dependencies
+node_modules/
+# Environment variables
+.env
+# VS Code settings
+.vscode/
+# OS generated files
+.DS_Store
+Thumbs.db
+# Git repo
+.git
+# Markdown docs
+*.md

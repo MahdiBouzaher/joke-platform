@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Jokes Central</title>
+    <link rel="stylesheet" href="jokes.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Jokes Central</h1>
+        <p>Pick a type and count, then press Get Joke</p>
+
+        <div>
+            <label for="typeSelect">Type:</label>
+            <select id="typeSelect"></select>
+
+            <label for="countInput">Count:</label>
+            <input id="countInput" type="number" min="1" value="1" style="width:60px" />
+            <button id="jokeButton" class="button">Get Joke</button>
+        </div>
+
+        <div id="jokeDisplay"></div>
+    </div>
+
+    <script>
+        // async client logic (no external jokes.js)
+        (async function () {
+            const typeSelect = document.getElementById('typeSelect');
+            const countInput = document.getElementById('countInput');
+            const jokeButton = document.getElementById('jokeButton');
+            const jokeDisplay = document.getElementById('jokeDisplay');
+
+            const escapeHtml = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+            // load types
+            try {
+                const r = await fetch('/types');
+                const types = await r.json();
+                const list = Array.from(new Set(['any', ...types]));
+                typeSelect.innerHTML = list.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+            } catch {
+                typeSelect.innerHTML = '<option value="any">any</option>';
+            }
+
+            jokeButton.addEventListener('click', async () => {
+                jokeDisplay.innerHTML = '';
+                const type = encodeURIComponent(typeSelect.value || 'any');
+                const count = parseInt(countInput.value, 10) || 1;
+                try {
+                    const res = await fetch(`/joke/${type}?count=${count}`);
+                    const data = await res.json();
+                    if (!data || (Array.isArray(data) && data.length === 0)) {
+                        jokeDisplay.textContent = 'No jokes available for that type.';
+                        return;
+                    }
+
+                    if (count === 1) {
+                        const joke = Array.isArray(data) ? data[0] : data;
+                        const setupEl = document.createElement('div');
+                        setupEl.className = 'joke';
+                        setupEl.innerHTML = `<strong>${escapeHtml(joke.setup || '')}</strong>`;
+                        jokeDisplay.appendChild(setupEl);
+
+                        // show punchline after 2 seconds
+                        setTimeout(() => {
+                            const punchEl = document.createElement('div');
+                            punchEl.className = 'joke';
+                            punchEl.innerHTML = `<em>${escapeHtml(joke.punchline || '')}</em>`;
+                            jokeDisplay.appendChild(punchEl);
+                        }, 2000);
+                    } else {
+                        const arr = Array.isArray(data) ? data : [data];
+                        const table = document.createElement('table');
+                        table.innerHTML = `<thead><tr><th>Setup</th><th>Punchline</th><th>Type</th></tr></thead>`;
+                        const tbody = document.createElement('tbody');
+                        arr.forEach(j => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `<td>${escapeHtml(j.setup || '')}</td><td>${escapeHtml(j.punchline || '')}</td><td>${escapeHtml(j.type || '')}</td>`;
+                            tbody.appendChild(tr);
+                        });
+                        table.appendChild(tbody);
+                        jokeDisplay.appendChild(table);
+                    }
+                } catch {
+                    jokeDisplay.textContent = 'Failed to fetch joke.';
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>

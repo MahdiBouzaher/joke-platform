@@ -1,0 +1,108 @@
+services:
+
+  mysql:
+    image: mysql:8
+    container_name: jokes-mysql
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - mysql_vol:/var/lib/mysql
+      - ./dbinit/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - jokes-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-padmin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: jokes-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+  joke:
+    build: ./jokes
+    container_name: jokes-joke-app
+    ports:
+      - "4000:3000"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      PORT: ${PORT}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+  etl:
+    build: ./etl
+    container_name: jokes-etl
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+  submit:
+    build: ./submit
+    container_name: jokes-submit-app
+    ports:
+      - "4200:3200"
+    env_file:
+      - .env
+    environment:
+      PORT: ${SUBMIT_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      JOKE_SERVICE_URL: ${JOKE_SERVICE_URL}
+    volumes:
+      - types_cache:/app/cache
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+volumes:
+  mysql_vol:
+  types_cache:
+
+networks:
+  jokes-network:
+    driver: bridge
