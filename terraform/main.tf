@@ -145,6 +145,18 @@ resource "azurerm_network_security_group" "services_nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  security_rule {
+    name                       = "allow-moderate-service"
+    priority                   = 140
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "4300"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 }
 
 # ─── Kong VM ──────────────────────────────────────────────────────────────────
@@ -239,14 +251,6 @@ resource "azurerm_linux_virtual_machine" "kong_vm" {
 
 # ─── Services VM ──────────────────────────────────────────────────────────────
 
-resource "azurerm_public_ip" "services_pip" {
-  name                = "services-pip"
-  location            = azurerm_resource_group.jokes_rg.location
-  resource_group_name = azurerm_resource_group.jokes_rg.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
-
 resource "azurerm_network_interface" "services_nic" {
   name                = "services-nic"
   location            = azurerm_resource_group.jokes_rg.location
@@ -257,7 +261,6 @@ resource "azurerm_network_interface" "services_nic" {
     subnet_id                     = azurerm_subnet.jokes_subnet.id
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.10"
-    public_ip_address_id          = azurerm_public_ip.services_pip.id
   }
 }
 
@@ -289,10 +292,13 @@ resource "azurerm_linux_virtual_machine" "services_vm" {
   }
 
   connection {
-    type     = "ssh"
-    host     = azurerm_public_ip.services_pip.ip_address
-    user     = var.admin_username
-    password = var.admin_password
+    type                = "ssh"
+    host                = "10.0.1.10"
+    user                = var.admin_username
+    password            = var.admin_password
+    bastion_host        = azurerm_public_ip.kong_pip.ip_address
+    bastion_user        = var.admin_username
+    bastion_password    = var.admin_password
   }
 
   provisioner "file" {
@@ -330,6 +336,11 @@ resource "azurerm_linux_virtual_machine" "services_vm" {
     destination = "/home/${var.admin_username}/submit"
   }
 
+  provisioner "file" {
+    source      = "../moderate"
+    destination = "/home/${var.admin_username}/moderate"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "chmod +x /home/${var.admin_username}/docker-az-tf-swap.sh",
@@ -343,8 +354,4 @@ resource "azurerm_linux_virtual_machine" "services_vm" {
 
 output "kong_public_ip" {
   value = azurerm_public_ip.kong_pip.ip_address
-}
-
-output "services_public_ip" {
-  value = azurerm_public_ip.services_pip.ip_address
 }

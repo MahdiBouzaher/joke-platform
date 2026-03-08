@@ -1,0 +1,13 @@
+{
+  "name": "moderate",
+  "version": "1.0.0",
+  "main": "moderateApp.js",
+  "scripts": {
+    "start": "node moderateApp.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "amqplib": "^0.10.3",
+    "dotenv": "^16.0.3"
+  }
+}

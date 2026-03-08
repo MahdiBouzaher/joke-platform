@@ -1,5 +1,8 @@
+
+# Docker Compose for joke platform
 services:
 
+  # MySQL database
   mysql:
     image: mysql:8
     container_name: jokes-mysql
@@ -20,6 +23,7 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # RabbitMQ broker
   rabbitmq:
     image: rabbitmq:3-management
     container_name: jokes-rabbitmq
@@ -35,6 +39,7 @@ services:
       - jokes-network
     restart: unless-stopped
 
+  # Joke API app
   joke:
     build: ./jokes
     container_name: jokes-joke-app
@@ -55,6 +60,7 @@ services:
       - jokes-network
     restart: unless-stopped
 
+  # ETL service
   etl:
     build: ./etl
     container_name: jokes-etl
@@ -77,6 +83,7 @@ services:
       - jokes-network
     restart: unless-stopped
 
+  # Joke submit app
   submit:
     build: ./submit
     container_name: jokes-submit-app
@@ -99,10 +106,37 @@ services:
       - jokes-network
     restart: unless-stopped
 
+  # Joke moderate app
+  moderate:
+    build: ./moderate
+    container_name: jokes-moderate-app
+    ports:
+      - "4300:3300"
+    env_file:
+      - .env
+    environment:
+      PORT: ${MODERATE_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - moderate_cache:/app/cache
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+
+# Named volumes
 volumes:
   mysql_vol:
   types_cache:
+  moderate_cache:
 
+
+# Custom network
 networks:
   jokes-network:
     driver: bridge

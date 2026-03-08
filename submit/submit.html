@@ -225,8 +225,9 @@
             }, 5000);
         }
 
-        // Load types when page loads
+        // Load types when page loads and poll every 5 seconds
         loadTypes();
+        setInterval(loadTypes, 5000);
     </script>
 </body>
 </html>

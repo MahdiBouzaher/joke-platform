@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Joke Moderator</title>
+  <link rel="stylesheet" href="moderate.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Joke Moderator</h1>
+
+    <div id="noJoke" class="status-msg" style="display:none">
+      No jokes pending — checking every second...
+    </div>
+
+    <div id="jokePanel" style="display:none">
+      <div class="field-group">
+        <label>Setup</label>
+        <input id="setup" type="text" />
+      </div>
+      <div class="field-group">
+        <label>Punchline</label>
+        <input id="punchline" type="text" />
+      </div>
+      <div class="field-group">
+        <label>Type</label>
+        <div class="type-row">
+          <select id="typeSelect"></select>
+          <span>or enter new:</span>
+          <input id="newType" type="text" placeholder="new type..." />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="approveBtn" class="btn btn-approve">Approve</button>
+        <button id="rejectBtn" class="btn btn-reject">Reject</button>
+      </div>
+      <div id="feedback" class="feedback"></div>
+    </div>
+  </div>
+
+  <script>
+    (async function () {
+      const jokePanel = document.getElementById('jokePanel');
+      const noJoke = document.getElementById('noJoke');
+      const setupEl = document.getElementById('setup');
+      const punchlineEl = document.getElementById('punchline');
+      const typeSelect = document.getElementById('typeSelect');
+      const newTypeEl = document.getElementById('newType');
+      const approveBtn = document.getElementById('approveBtn');
+      const rejectBtn = document.getElementById('rejectBtn');
+      const feedback = document.getElementById('feedback');
+
+      let pollInterval = null;
+
+      async function loadTypes() {
+        try {
+          const res = await fetch('/types');
+          const types = await res.json();
+          const current = typeSelect.value;
+          typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+          if (current) typeSelect.value = current;
+        } catch (_) {}
+      }
+
+      async function loadJoke() {
+        try {
+          const res = await fetch('/moderate');
+          const data = await res.json();
+          if (data.available === false) {
+            showNoJoke();
+          } else {
+            showJoke(data);
+          }
+        } catch (_) {
+          showNoJoke();
+        }
+      }
+
+      function showJoke(data) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+        setupEl.value = data.setup || '';
+        punchlineEl.value = data.punchline || '';
+        const match = [...typeSelect.options].find(o => o.value === data.type);
+        if (match) {
+          typeSelect.value = data.type;
+          newTypeEl.value = '';
+        } else {
+          newTypeEl.value = data.type || '';
+        }
+        feedback.textContent = '';
+        jokePanel.style.display = 'block';
+        noJoke.style.display = 'none';
+      }
+
+      function showNoJoke() {
+        jokePanel.style.display = 'none';
+        noJoke.style.display = 'block';
+        if (!pollInterval) {
+          pollInterval = setInterval(loadJoke, 1000);
+        }
+      }
+
+      approveBtn.addEventListener('click', async () => {
+        const type = newTypeEl.value.trim() !== '' ? newTypeEl.value.trim() : typeSelect.value;
+        try {
+          const res = await fetch('/moderated', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ setup: setupEl.value, punchline: punchlineEl.value, type })
+          });
+          const data = await res.json();
+          if (data.success) {
+            feedback.textContent = 'Joke approved';
+            await loadTypes();
+            setTimeout(loadJoke, 800);
+          }
+        } catch (_) {
+          feedback.textContent = 'Failed to approve.';
+        }
+      });
+
+      rejectBtn.addEventListener('click', () => {
+        feedback.textContent = 'Joke rejected.';
+        setTimeout(loadJoke, 800);
+      });
+
+      await loadTypes();
+      await loadJoke();
+      setInterval(loadTypes, 5000);
+    })();
+  </script>
+</body>
+</html>
