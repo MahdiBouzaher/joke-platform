@@ -1,6 +1,8 @@
 // app.js
 const express = require('express');
 const path = require('path');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -11,6 +13,17 @@ const db = require('./db.js');
 const app = express();
 const APP_PORT = process.env.PORT || 3000;
 
+// Swagger setup
+const swaggerSpec = swaggerJsdoc({
+    definition: {
+        openapi: '3.0.0',
+        info: { title: 'Jokes API', version: '1.0.0', description: 'API for retrieving jokes from the database' },
+        servers: [{ url: process.env.PUBLIC_URL || `http://localhost:${APP_PORT}`, description: 'Development server' }]
+    },
+    apis: ['./app.js']
+});
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Serve static files (jokes.html, jokes.css, jokes.js)
 app.use(express.static(path.join(__dirname)));
 
@@ -19,7 +32,28 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'jokes.html'));
 });
 
-// GET /jokes?type=X&count=N (query param version for frontend)
+/**
+ * @swagger
+ * /jokes:
+ *   get:
+ *     summary: Get random jokes by type (query params)
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema: { type: string }
+ *         description: Joke type (use "any" for all types)
+ *       - in: query
+ *         name: count
+ *         schema: { type: integer, minimum: 1 }
+ *         description: Number of jokes to return
+ *     responses:
+ *       200:
+ *         description: Array of jokes
+ *       400:
+ *         description: Invalid count
+ *       404:
+ *         description: No jokes found for that type
+ */
 app.get('/jokes', async (req, res) => {
     const type = req.query.type || 'any';
     const count = parseInt(req.query.count) || 1;
@@ -51,7 +85,29 @@ app.get('/joke', (req, res) => {
     });
 });
 
-// GET /joke/:type?count=n (path param version)
+/**
+ * @swagger
+ * /joke/{type}:
+ *   get:
+ *     summary: Get random jokes by type (path param)
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema: { type: string }
+ *         description: Joke type (use "any" for all types)
+ *       - in: query
+ *         name: count
+ *         schema: { type: integer, minimum: 1 }
+ *         description: Number of jokes to return
+ *     responses:
+ *       200:
+ *         description: Array of jokes
+ *       400:
+ *         description: Invalid count
+ *       404:
+ *         description: No jokes found for that type
+ */
 app.get('/joke/:type', async (req, res) => {
     const type = req.params.type;
     const count = parseInt(req.query.count) || 1;
@@ -79,7 +135,15 @@ app.get('/joke/:type', async (req, res) => {
     }
 });
 
-// GET /types -> return unique types array from DB
+/**
+ * @swagger
+ * /types:
+ *   get:
+ *     summary: Get all joke types
+ *     responses:
+ *       200:
+ *         description: Array of joke type strings
+ */
 app.get('/types', async (req, res) => {
     try {
         // Call the database function

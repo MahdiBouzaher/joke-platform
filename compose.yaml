@@ -2,8 +2,9 @@
 # Docker Compose for joke platform
 services:
 
-  # MySQL database
+  # MySQL database — only starts with: docker compose --profile mysql up
   mysql:
+    profiles: ["mysql"]
     image: mysql:8
     container_name: jokes-mysql
     env_file:
@@ -18,6 +19,26 @@ services:
       - jokes-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-padmin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # MongoDB database — only starts with: docker compose --profile mongo up
+  mongodb:
+    profiles: ["mongo"]
+    image: mongo:8
+    container_name: jokes-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - mongo_vol:/data/db
+      - ./dbinit/mongo-seed.js:/docker-entrypoint-initdb.d/mongo-seed.js
+    networks:
+      - jokes-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -52,10 +73,10 @@ services:
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME}
+      DB_TYPE: ${DB_TYPE}
+      MONGO_URI: ${MONGO_URI}
       PORT: ${PORT}
-    depends_on:
-      mysql:
-        condition: service_healthy
+      PUBLIC_URL: ${PUBLIC_BASE_URL}:4000
     networks:
       - jokes-network
     restart: unless-stopped
@@ -71,12 +92,12 @@ services:
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME}
+      DB_TYPE: ${DB_TYPE}
+      MONGO_URI: ${MONGO_URI}
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
     depends_on:
-      mysql:
-        condition: service_healthy
       rabbitmq:
         condition: service_started
     networks:
@@ -93,6 +114,7 @@ services:
       - .env
     environment:
       PORT: ${SUBMIT_PORT}
+      PUBLIC_URL: ${PUBLIC_BASE_URL}:4200
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
@@ -132,6 +154,7 @@ services:
 # Named volumes
 volumes:
   mysql_vol:
+  mongo_vol:
   types_cache:
   moderate_cache:
 

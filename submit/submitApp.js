@@ -131,7 +131,7 @@ const swaggerSpec = swaggerJsdoc({
   definition: {
     openapi: '3.0.0',
     info: { title: 'Submit Jokes API', version: '1.0.0', description: 'API for submitting new jokes via message queue with cached types' },
-    servers: [{ url: `http://localhost:${APP_PORT}`, description: 'Development server' }]
+    servers: [{ url: process.env.PUBLIC_URL || `http://localhost:${APP_PORT}`, description: 'Development server' }]
   },
   apis: ['./submitApp.js']
 });
