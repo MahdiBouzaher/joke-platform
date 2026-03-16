@@ -1,4 +1,4 @@
-// Imports
+// Imports — CD pipeline trigger
 const express = require('express');
 const path = require('path');
 const amqp = require('amqplib');
