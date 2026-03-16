@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="moderate.css" />
 </head>
 <body>
+  <div id="userBar" style="background:#1a1a2e;color:#fff;padding:8px 20px;display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;">
+    <span id="userEmail">Loading...</span>
+    <a href="/logout" style="color:#aaa;text-decoration:none;">Logout</a>
+  </div>
   <div class="container">
     <h1>Joke Moderator</h1>
 
@@ -125,6 +129,13 @@
         feedback.textContent = 'Joke rejected.';
         setTimeout(loadJoke, 800);
       });
+
+      // Show logged-in user
+      try {
+        const me = await fetch('/me');
+        const { email } = await me.json();
+        document.getElementById('userEmail').textContent = email;
+      } catch (_) {}
 
       await loadTypes();
       await loadJoke();

@@ -6,6 +6,7 @@ const path = require('path');
 const amqp = require('amqplib');
 const fs = require('fs').promises;
 const http = require('http');
+const { auth, requiresAuth } = require('express-openid-connect');
 
 require('dotenv').config();
 
@@ -92,16 +93,37 @@ connectRabbitMQ();
 
 // Parse JSON bodies
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// OIDC authentication
+app.use(auth({
+  authRequired: false,
+  auth0Logout: true,
+  secret: process.env.SESSION_SECRET,
+  baseURL: process.env.BASE_URL,
+  clientID: process.env.AUTH0_CLIENT_ID,
+  clientSecret: process.env.AUTH0_CLIENT_SECRET,
+  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
+  authorizationParams: {
+    response_type: 'code'
+  }
+}));
+
 // Serve static files
 app.use(express.static(path.join(__dirname)));
 
+// Current user info
+app.get('/me', requiresAuth(), (req, res) => {
+  res.json({ email: req.oidc.user.email });
+});
+
 // Main page
-app.get('/', (req, res) => {
+app.get('/', requiresAuth(), (req, res) => {
   res.sendFile(path.join(__dirname, 'moderate.html'));
 });
 
 // Get a joke to moderate
-app.get('/moderate', async (req, res) => {
+app.get('/moderate', requiresAuth(), async (req, res) => {
   try {
     const msg = await channel.get('submitted_jokes', { noAck: false });
     if (msg) {
@@ -118,7 +140,7 @@ app.get('/moderate', async (req, res) => {
 });
 
 // Submit moderated joke
-app.post('/moderated', async (req, res) => {
+app.post('/moderated', requiresAuth(), async (req, res) => {
   const { setup, punchline, type } = req.body;
 
   if (!setup || !punchline || !type) {
@@ -141,7 +163,7 @@ app.post('/moderated', async (req, res) => {
 });
 
 // Get types from cache
-app.get('/types', async (req, res) => {
+app.get('/types', requiresAuth(), async (req, res) => {
   try {
     const cached = await fs.readFile(CACHE_FILE, 'utf8');
     res.json(JSON.parse(cached));
