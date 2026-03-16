@@ -249,35 +249,35 @@ resource "azurerm_linux_virtual_machine" "kong_vm" {
   }
 }
 
-# ─── Services VM ──────────────────────────────────────────────────────────────
+# ─── Joke VM (joke app + database + ETL) ──────────────────────────────────────
 
-resource "azurerm_network_interface" "services_nic" {
-  name                = "services-nic"
+resource "azurerm_network_interface" "joke_nic" {
+  name                = "joke-nic"
   location            = azurerm_resource_group.jokes_rg.location
   resource_group_name = azurerm_resource_group.jokes_rg.name
 
   ip_configuration {
-    name                          = "services-ip-config"
+    name                          = "joke-ip-config"
     subnet_id                     = azurerm_subnet.jokes_subnet.id
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.10"
   }
 }
 
-resource "azurerm_network_interface_security_group_association" "services_nic_nsg" {
-  network_interface_id      = azurerm_network_interface.services_nic.id
+resource "azurerm_network_interface_security_group_association" "joke_nic_nsg" {
+  network_interface_id      = azurerm_network_interface.joke_nic.id
   network_security_group_id = azurerm_network_security_group.services_nsg.id
 }
 
-resource "azurerm_linux_virtual_machine" "services_vm" {
-  name                            = "services-vm"
+resource "azurerm_linux_virtual_machine" "joke_vm" {
+  name                            = "joke-vm"
   location                        = azurerm_resource_group.jokes_rg.location
   resource_group_name             = azurerm_resource_group.jokes_rg.name
   size                            = var.vm_size
   admin_username                  = var.admin_username
   admin_password                  = var.admin_password
   disable_password_authentication = false
-  network_interface_ids           = [azurerm_network_interface.services_nic.id]
+  network_interface_ids           = [azurerm_network_interface.joke_nic.id]
 
   os_disk {
     caching              = "ReadWrite"
@@ -307,7 +307,7 @@ resource "azurerm_linux_virtual_machine" "services_vm" {
   }
 
   provisioner "file" {
-    source      = "../compose.yaml"
+    source      = "../compose-joke.yaml"
     destination = "/home/${var.admin_username}/compose.yaml"
   }
 
@@ -329,6 +329,82 @@ resource "azurerm_linux_virtual_machine" "services_vm" {
   provisioner "file" {
     source      = "../etl"
     destination = "/home/${var.admin_username}/etl"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /home/${var.admin_username}/docker-az-tf-swap.sh",
+      "sudo /home/${var.admin_username}/docker-az-tf-swap.sh",
+      "cd /home/${var.admin_username} && sudo docker compose --profile mongo up -d --build"
+    ]
+  }
+}
+
+# ─── Submit VM (RabbitMQ + submit app + moderate app) ─────────────────────────
+
+resource "azurerm_network_interface" "submit_nic" {
+  name                = "submit-nic"
+  location            = azurerm_resource_group.jokes_rg.location
+  resource_group_name = azurerm_resource_group.jokes_rg.name
+
+  ip_configuration {
+    name                          = "submit-ip-config"
+    subnet_id                     = azurerm_subnet.jokes_subnet.id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.1.11"
+  }
+}
+
+resource "azurerm_network_interface_security_group_association" "submit_nic_nsg" {
+  network_interface_id      = azurerm_network_interface.submit_nic.id
+  network_security_group_id = azurerm_network_security_group.services_nsg.id
+}
+
+resource "azurerm_linux_virtual_machine" "submit_vm" {
+  name                            = "submit-vm"
+  location                        = azurerm_resource_group.jokes_rg.location
+  resource_group_name             = azurerm_resource_group.jokes_rg.name
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+  network_interface_ids           = [azurerm_network_interface.submit_nic.id]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
+  }
+
+  connection {
+    type                = "ssh"
+    host                = "10.0.1.11"
+    user                = var.admin_username
+    password            = var.admin_password
+    bastion_host        = azurerm_public_ip.kong_pip.ip_address
+    bastion_user        = var.admin_username
+    bastion_password    = var.admin_password
+  }
+
+  provisioner "file" {
+    source      = "../kong/docker-az-tf-swap.sh"
+    destination = "/home/${var.admin_username}/docker-az-tf-swap.sh"
+  }
+
+  provisioner "file" {
+    source      = "../compose-submit.yaml"
+    destination = "/home/${var.admin_username}/compose.yaml"
+  }
+
+  provisioner "file" {
+    source      = "../.env"
+    destination = "/home/${var.admin_username}/.env"
   }
 
   provisioner "file" {
