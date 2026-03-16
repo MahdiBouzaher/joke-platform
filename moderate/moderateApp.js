@@ -106,6 +106,9 @@ app.use(auth({
   issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
   authorizationParams: {
     response_type: 'code'
+  },
+  afterCallback: (req, res, session) => {
+    return { ...session, returnTo: '/moderate-form' };
   }
 }));
 
