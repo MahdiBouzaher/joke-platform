@@ -9,6 +9,7 @@ require('dotenv').config();
 
 const app = express();
 const APP_PORT = process.env.PORT;
+const JOKE_SERVICE_URL = process.env.JOKE_SERVICE_URL || 'http://joke:3000';
 const CACHE_FILE = '/app/cache/types.json';
 
 let channel;
@@ -16,7 +17,7 @@ let channel;
 // Populate cache from joke service
 async function populateCacheFromJokeService() {
   return new Promise((resolve) => {
-    http.get('http://joke:3000/types', (res) => {
+    http.get(`${JOKE_SERVICE_URL}/types`, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', async () => {

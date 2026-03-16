@@ -1,0 +1,78 @@
+
+# Docker Compose for Submit VM — RabbitMQ, submit app, moderate app
+services:
+
+  # RabbitMQ broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: jokes-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+  # Joke submit app
+  submit:
+    build: ./submit
+    container_name: jokes-submit-app
+    ports:
+      - "4200:3200"
+    env_file:
+      - .env
+    environment:
+      PORT: ${SUBMIT_PORT}
+      PUBLIC_URL: ${PUBLIC_BASE_URL}:4200
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      JOKE_SERVICE_URL: ${JOKE_SERVICE_URL}
+    volumes:
+      - types_cache:/app/cache
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+  # Joke moderate app
+  moderate:
+    build: ./moderate
+    container_name: jokes-moderate-app
+    ports:
+      - "4300:3300"
+    env_file:
+      - .env
+    environment:
+      PORT: ${MODERATE_PORT}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      JOKE_SERVICE_URL: ${JOKE_SERVICE_URL}
+    volumes:
+      - moderate_cache:/app/cache
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+
+# Named volumes
+volumes:
+  types_cache:
+  moderate_cache:
+
+
+# Custom network
+networks:
+  jokes-network:
+    driver: bridge

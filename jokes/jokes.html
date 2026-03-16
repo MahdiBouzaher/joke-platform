@@ -64,13 +64,13 @@
                         setupEl.innerHTML = `<strong>${escapeHtml(joke.setup || '')}</strong>`;
                         jokeDisplay.appendChild(setupEl);
 
-                        // show punchline after 2 seconds
+                        // show punchline after 3 seconds
                         setTimeout(() => {
                             const punchEl = document.createElement('div');
                             punchEl.className = 'joke';
                             punchEl.innerHTML = `<em>${escapeHtml(joke.punchline || '')}</em>`;
                             jokeDisplay.appendChild(punchEl);
-                        }, 2000);
+                        }, 3000);
                     } else {
                         const arr = Array.isArray(data) ? data : [data];
                         const table = document.createElement('table');

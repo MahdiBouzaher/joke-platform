@@ -40,7 +40,7 @@ services:
 
   # Submit app service
   - name: submit-service
-    url: http://10.0.1.10:4200 
+    url: http://10.0.1.11:4200
     routes:
       # Submit HTML route
       - name: submit-html
@@ -68,7 +68,7 @@ services:
 
   # Moderate app service
   - name: moderate-service
-    url: http://10.0.1.10:4300
+    url: http://10.0.1.11:4300
     routes:
       # Moderate HTML route
       - name: moderate-html
