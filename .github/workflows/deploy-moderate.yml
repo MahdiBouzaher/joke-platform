@@ -26,21 +26,10 @@ jobs:
           tags: mahdihoucine/joke-moderate:latest
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build-push
     steps:
-      - name: Test connectivity to Kong VM
-        run: nc -zv -w 10 ${{ secrets.KONG_VM_HOST }} 22 && echo "Port 22 reachable" || echo "Port 22 NOT reachable"
-
-      - name: Deploy to Submit VM via bastion
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SUBMIT_VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          password: ${{ secrets.VM_PASSWORD }}
-          proxy_host: ${{ secrets.KONG_VM_HOST }}
-          proxy_username: ${{ secrets.VM_USER }}
-          proxy_password: ${{ secrets.VM_PASSWORD }}
-          script: |
-            docker pull mahdihoucine/joke-moderate:latest
-            sudo docker compose -f ~/compose.yaml up -d --no-deps --force-recreate moderate
+      - name: Deploy moderate service
+        run: |
+          sudo docker pull mahdihoucine/joke-moderate:latest
+          sudo docker compose -f ~/compose.yaml up -d --no-deps --force-recreate moderate
