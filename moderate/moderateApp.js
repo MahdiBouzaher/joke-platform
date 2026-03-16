@@ -1,3 +1,5 @@
+// Test CD pipeline for moderate app
+
 // Imports — CD pipeline trigger
 const express = require('express');
 const path = require('path');
