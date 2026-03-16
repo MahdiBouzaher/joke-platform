@@ -1,4 +1,4 @@
-// Test CD pipeline for moderate app
+// Moderate service with OIDC authentication
 
 // Imports — CD pipeline trigger
 const express = require('express');
