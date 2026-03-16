@@ -56,6 +56,11 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
       JOKE_SERVICE_URL: ${JOKE_SERVICE_URL}
+      BASE_URL: https://51.120.77.108
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
+      AUTH0_ISSUER_BASE_URL: ${AUTH0_ISSUER_BASE_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
     volumes:
       - moderate_cache:/app/cache
     depends_on:

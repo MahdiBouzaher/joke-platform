@@ -102,6 +102,31 @@ services:
           - GET
         strip_path: true
 
+      # OIDC callback route (Auth0 redirects here after login)
+      - name: moderate-callback
+        paths:
+          - /callback
+        methods:
+          - GET
+          - POST
+        strip_path: false
+
+      # OIDC logout route
+      - name: moderate-logout
+        paths:
+          - /logout
+        methods:
+          - GET
+        strip_path: false
+
+      # Logged-in user info
+      - name: moderate-me
+        paths:
+          - /me
+        methods:
+          - GET
+        strip_path: false
+
 
 # Plugins
 plugins:
