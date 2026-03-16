@@ -40,4 +40,4 @@ jobs:
           proxy_password: ${{ secrets.VM_PASSWORD }}
           script: |
             docker pull mahdihoucine/joke-moderate:latest
-            docker compose -f ~/compose-submit.yaml up -d --no-deps --force-recreate moderate
+            sudo docker compose -f ~/compose.yaml up -d --no-deps --force-recreate moderate
