@@ -44,7 +44,7 @@ services:
 
   # Joke moderate app
   moderate:
-    build: ./moderate
+    image: mahdihoucine/joke-moderate:latest
     container_name: jokes-moderate-app
     ports:
       - "4300:3300"
