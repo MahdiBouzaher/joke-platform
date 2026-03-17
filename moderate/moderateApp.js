@@ -120,21 +120,30 @@ app.get('/logout', (req, res) => {
   res.oidc.logout({ returnTo: `${process.env.BASE_URL}/moderate-form` });
 });
 
+// Middleware for API routes — returns 401 instead of redirecting to Auth0
+// This prevents multiple concurrent auth flows which cause state mismatch errors
+function requiresAuthAPI(req, res, next) {
+  if (!req.oidc.isAuthenticated()) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
 // Serve static files
 app.use(express.static(path.join(__dirname)));
 
 // Current user info
-app.get('/me', requiresAuth(), (req, res) => {
+app.get('/me', requiresAuthAPI, (req, res) => {
   res.json({ email: req.oidc.user.email });
 });
 
-// Main page
+// Main page — only this route redirects to Auth0 login
 app.get('/', requiresAuth(), (req, res) => {
   res.sendFile(path.join(__dirname, 'moderate.html'));
 });
 
 // Get a joke to moderate
-app.get('/moderate', requiresAuth(), async (req, res) => {
+app.get('/moderate', requiresAuthAPI, async (req, res) => {
   try {
     const msg = await channel.get('submitted_jokes', { noAck: false });
     if (msg) {
@@ -151,7 +160,7 @@ app.get('/moderate', requiresAuth(), async (req, res) => {
 });
 
 // Submit moderated joke
-app.post('/moderated', requiresAuth(), async (req, res) => {
+app.post('/moderated', requiresAuthAPI, async (req, res) => {
   const { setup, punchline, type } = req.body;
 
   if (!setup || !punchline || !type) {
@@ -174,7 +183,7 @@ app.post('/moderated', requiresAuth(), async (req, res) => {
 });
 
 // Get types from cache
-app.get('/types', requiresAuth(), async (req, res) => {
+app.get('/types', requiresAuthAPI, async (req, res) => {
   try {
     const cached = await fs.readFile(CACHE_FILE, 'utf8');
     res.json(JSON.parse(cached));
