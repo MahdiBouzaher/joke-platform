@@ -40,6 +40,18 @@ p { margin-top: 0; color: #4b5563; }
     margin-left: 8px;
 }
 
+.submit-link {
+    display: inline-block;
+    margin: 12px 0 20px;
+    background: #6366f1;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    padding: 9px 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
 #jokeDisplay { margin-top: 24px; }
 
 table {
