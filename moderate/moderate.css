@@ -1,3 +1,18 @@
+#userBar {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 8px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+#userBar a {
+  color: #aaa;
+  text-decoration: none;
+}
+
 body {
   background: #f9fafb;
   font-family: 'Segoe UI', Arial, sans-serif;
