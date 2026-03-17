@@ -109,8 +109,16 @@ app.use(auth({
   },
   afterCallback: (req, res, session) => {
     return { ...session, returnTo: '/moderate-form' };
+  },
+  routes: {
+    logout: false
   }
 }));
+
+// Custom logout — redirect back to moderate form so login is triggered immediately
+app.get('/logout', (req, res) => {
+  res.oidc.logout({ returnTo: `${process.env.BASE_URL}/moderate-form` });
+});
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
