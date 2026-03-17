@@ -107,9 +107,6 @@ app.use(auth({
   authorizationParams: {
     response_type: 'code'
   },
-  afterCallback: (req, res, session) => {
-    return { ...session, returnTo: '/moderate-form' };
-  },
   routes: {
     logout: false
   }
@@ -137,8 +134,11 @@ app.get('/me', requiresAuthAPI, (req, res) => {
   res.json({ email: req.oidc.user.email });
 });
 
-// Main page — only this route redirects to Auth0 login
-app.get('/', requiresAuth(), (req, res) => {
+// Main page — explicitly set returnTo so after login user lands back on /moderate-form
+app.get('/', (req, res) => {
+  if (!req.oidc.isAuthenticated()) {
+    return res.oidc.login({ returnTo: '/moderate-form' });
+  }
   res.sendFile(path.join(__dirname, 'moderate.html'));
 });
 
