@@ -27,14 +27,31 @@
         <label>Punchline</label>
         <input id="punchline" type="text" />
       </div>
+
       <div class="field-group">
         <label>Type</label>
-        <div class="type-row">
+        <div class="submitted-type-row">
+          <span class="submitted-label">Submitted as:</span>
+          <span id="submittedType" class="submitted-badge"></span>
+        </div>
+        <div class="type-toggle">
+          <label class="toggle-option">
+            <input type="radio" name="typeMode" value="existing" id="modeExisting" />
+            Use existing type
+          </label>
+          <label class="toggle-option">
+            <input type="radio" name="typeMode" value="new" id="modeNew" />
+            Add new type
+          </label>
+        </div>
+        <div id="existingTypePanel">
           <select id="typeSelect"></select>
-          <span>or enter new:</span>
-          <input id="newType" type="text" placeholder="new type..." />
+        </div>
+        <div id="newTypePanel" style="display:none">
+          <input id="newType" type="text" placeholder="Enter new type..." />
         </div>
       </div>
+
       <div class="actions">
         <button id="approveBtn" class="btn btn-approve">Approve</button>
         <button id="rejectBtn" class="btn btn-reject">Reject</button>
@@ -54,12 +71,33 @@
       const approveBtn = document.getElementById('approveBtn');
       const rejectBtn = document.getElementById('rejectBtn');
       const feedback = document.getElementById('feedback');
+      const submittedTypeEl = document.getElementById('submittedType');
+      const modeExisting = document.getElementById('modeExisting');
+      const modeNew = document.getElementById('modeNew');
+      const existingTypePanel = document.getElementById('existingTypePanel');
+      const newTypePanel = document.getElementById('newTypePanel');
 
       let pollInterval = null;
+
+      function setMode(mode) {
+        if (mode === 'existing') {
+          modeExisting.checked = true;
+          existingTypePanel.style.display = 'block';
+          newTypePanel.style.display = 'none';
+        } else {
+          modeNew.checked = true;
+          existingTypePanel.style.display = 'none';
+          newTypePanel.style.display = 'block';
+        }
+      }
+
+      modeExisting.addEventListener('change', () => setMode('existing'));
+      modeNew.addEventListener('change', () => setMode('new'));
 
       async function loadTypes() {
         try {
           const res = await fetch('/types');
+          if (res.status === 401) return;
           const types = await res.json();
           const current = typeSelect.value;
           typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -70,6 +108,7 @@
       async function loadJoke() {
         try {
           const res = await fetch('/moderate');
+          if (res.status === 401) { window.location.reload(); return; }
           const data = await res.json();
           if (data.available === false) {
             showNoJoke();
@@ -86,13 +125,20 @@
         pollInterval = null;
         setupEl.value = data.setup || '';
         punchlineEl.value = data.punchline || '';
-        const match = [...typeSelect.options].find(o => o.value === data.type);
-        if (match) {
-          typeSelect.value = data.type;
+
+        const submittedType = data.type || '';
+        submittedTypeEl.textContent = submittedType;
+
+        const existsInDropdown = [...typeSelect.options].some(o => o.value === submittedType);
+        if (existsInDropdown) {
+          typeSelect.value = submittedType;
           newTypeEl.value = '';
+          setMode('existing');
         } else {
-          newTypeEl.value = data.type || '';
+          newTypeEl.value = submittedType;
+          setMode('new');
         }
+
         feedback.textContent = '';
         jokePanel.style.display = 'block';
         noJoke.style.display = 'none';
@@ -107,7 +153,8 @@
       }
 
       approveBtn.addEventListener('click', async () => {
-        const type = newTypeEl.value.trim() !== '' ? newTypeEl.value.trim() : typeSelect.value;
+        const type = modeNew.checked ? newTypeEl.value.trim() : typeSelect.value;
+        if (!type) { feedback.textContent = 'Please select or enter a type.'; return; }
         try {
           const res = await fetch('/moderated', {
             method: 'POST',
@@ -116,7 +163,7 @@
           });
           const data = await res.json();
           if (data.success) {
-            feedback.textContent = 'Joke approved';
+            feedback.textContent = 'Joke approved.';
             await loadTypes();
             setTimeout(loadJoke, 800);
           }
@@ -133,8 +180,10 @@
       // Show logged-in user
       try {
         const me = await fetch('/me');
-        const { email } = await me.json();
-        document.getElementById('userEmail').textContent = email;
+        if (me.ok) {
+          const { email } = await me.json();
+          document.getElementById('userEmail').textContent = email;
+        }
       } catch (_) {}
 
       await loadTypes();
