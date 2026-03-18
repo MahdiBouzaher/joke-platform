@@ -1,33 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Jokes Central</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="jokes.css">
 </head>
-
 <body>
-    <div class="container">
-        <h1>Jokes Central</h1>
-        <p>Pick a type and count, then press Get Joke</p>
+    <header>
+        <div class="logo">Jokes<span> Central</span></div>
         <a href="/submit-form" class="submit-link">+ Submit a Joke</a>
+    </header>
 
-        <div>
-            <label for="typeSelect">Type:</label>
-            <select id="typeSelect"></select>
+    <main>
+        <div class="hero">
+            <h1>Need a <em>laugh?</em></h1>
+            <p>Pick a type and count, then press Get Joke</p>
+        </div>
 
-            <label for="countInput">Count:</label>
-            <input id="countInput" type="number" min="1" value="1" />
-            <button id="jokeButton" class="button">Get Joke</button>
+        <div class="controls-card">
+            <div class="field">
+                <label for="typeSelect">Joke Type</label>
+                <select id="typeSelect"></select>
+            </div>
+            <div class="field" style="flex:0">
+                <label for="countInput">Count</label>
+                <input id="countInput" type="number" min="1" value="1" />
+            </div>
+            <button id="jokeButton" class="btn-get">Get Joke</button>
         </div>
 
         <div id="jokeDisplay"></div>
-    </div>
+    </main>
 
     <script>
-        // async client logic (no external jokes.js)
         (async function () {
             const typeSelect = document.getElementById('typeSelect');
             const countInput = document.getElementById('countInput');
@@ -36,7 +44,6 @@
 
             const escapeHtml = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
-            // load types
             try {
                 const r = await fetch('/types');
                 const types = await r.json();
@@ -53,24 +60,27 @@
                 try {
                     const res = await fetch(`/joke/${type}?count=${count}`);
                     const data = await res.json();
+
                     if (!data || (Array.isArray(data) && data.length === 0)) {
-                        jokeDisplay.textContent = 'No jokes available for that type.';
+                        jokeDisplay.innerHTML = '<div class="empty-state">No jokes found for that type.</div>';
                         return;
                     }
 
                     if (count === 1) {
                         const joke = Array.isArray(data) ? data[0] : data;
-                        const setupEl = document.createElement('div');
-                        setupEl.className = 'joke';
-                        setupEl.innerHTML = `<strong>${escapeHtml(joke.setup || '')}</strong>`;
-                        jokeDisplay.appendChild(setupEl);
+                        const card = document.createElement('div');
+                        card.className = 'joke-card';
+                        card.innerHTML = `<div class="joke-setup">${escapeHtml(joke.setup || '')}</div>`;
+                        jokeDisplay.appendChild(card);
 
-                        // show punchline after 3 seconds
                         setTimeout(() => {
+                            const hr = document.createElement('hr');
+                            hr.className = 'joke-divider';
                             const punchEl = document.createElement('div');
-                            punchEl.className = 'joke';
-                            punchEl.innerHTML = `<em>${escapeHtml(joke.punchline || '')}</em>`;
-                            jokeDisplay.appendChild(punchEl);
+                            punchEl.className = 'joke-punchline';
+                            punchEl.textContent = joke.punchline || '';
+                            card.appendChild(hr);
+                            card.appendChild(punchEl);
                         }, 3000);
                     } else {
                         const arr = Array.isArray(data) ? data : [data];
@@ -79,18 +89,17 @@
                         const tbody = document.createElement('tbody');
                         arr.forEach(j => {
                             const tr = document.createElement('tr');
-                            tr.innerHTML = `<td>${escapeHtml(j.setup || '')}</td><td>${escapeHtml(j.punchline || '')}</td><td>${escapeHtml(j.type || '')}</td>`;
+                            tr.innerHTML = `<td>${escapeHtml(j.setup||'')}</td><td>${escapeHtml(j.punchline||'')}</td><td>${escapeHtml(j.type||'')}</td>`;
                             tbody.appendChild(tr);
                         });
                         table.appendChild(tbody);
                         jokeDisplay.appendChild(table);
                     }
                 } catch {
-                    jokeDisplay.textContent = 'Failed to fetch joke.';
+                    jokeDisplay.innerHTML = '<div class="error-msg">Failed to fetch joke.</div>';
                 }
             });
         })();
     </script>
 </body>
-
 </html>

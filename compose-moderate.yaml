@@ -1,0 +1,39 @@
+
+# Docker Compose for Moderate VM — moderate app only
+services:
+
+  # Joke moderate app
+  moderate:
+    image: mahdihoucine/joke-moderate:latest
+    container_name: jokes-moderate-app
+    ports:
+      - "4300:3300"
+    env_file:
+      - .env
+    environment:
+      PORT: ${MODERATE_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_REMOTE_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+          JOKE_SERVICE_URL: ${JOKE_SERVICE_URL}
+      BASE_URL: https://20.100.177.140
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
+      AUTH0_ISSUER_BASE_URL: ${AUTH0_ISSUER_BASE_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
+    volumes:
+      - moderate_cache:/app/cache
+    networks:
+      - jokes-network
+    restart: unless-stopped
+
+
+# Named volumes
+volumes:
+  moderate_cache:
+
+
+# Custom network
+networks:
+  jokes-network:
+    driver: bridge

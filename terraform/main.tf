@@ -35,6 +35,118 @@ resource "azurerm_subnet" "jokes_subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
+# ─── Sweden Central VNet + Subnet ─────────────────────────────────────────────
+
+resource "azurerm_virtual_network" "jokes_vnet_se" {
+  name                = "jokes-vnet-se"
+  address_space       = ["10.1.0.0/16"]
+  location            = "swedencentral"
+  resource_group_name = azurerm_resource_group.jokes_rg.name
+}
+
+resource "azurerm_subnet" "jokes_subnet_se" {
+  name                 = "jokes-subnet-se"
+  resource_group_name  = azurerm_resource_group.jokes_rg.name
+  virtual_network_name = azurerm_virtual_network.jokes_vnet_se.name
+  address_prefixes     = ["10.1.1.0/24"]
+}
+
+# ─── Sweden NSG for moderate ──────────────────────────────────────────────────
+
+resource "azurerm_network_security_group" "services_nsg_se" {
+  name                = "services-nsg-se"
+  location            = "swedencentral"
+  resource_group_name = azurerm_resource_group.jokes_rg.name
+
+  security_rule {
+    name                       = "allow-ssh"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-moderate-service"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "4300"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+# ─── Sweden NSG for RabbitMQ (internal only) ──────────────────────────────────
+
+resource "azurerm_network_security_group" "rabbitmq_nsg_se" {
+  name                = "rabbitmq-nsg-se"
+  location            = "swedencentral"
+  resource_group_name = azurerm_resource_group.jokes_rg.name
+
+  security_rule {
+    name                       = "allow-ssh"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-amqp"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "5672"
+    source_address_prefix      = "VirtualNetwork"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-rabbitmq-management"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "15672"
+    source_address_prefix      = "VirtualNetwork"
+    destination_address_prefix = "*"
+  }
+}
+
+# ─── VNet Peering: Norway ↔ Sweden ────────────────────────────────────────────
+
+resource "azurerm_virtual_network_peering" "norway_to_sweden" {
+  name                      = "norway-to-sweden"
+  resource_group_name       = azurerm_resource_group.jokes_rg.name
+  virtual_network_name      = azurerm_virtual_network.jokes_vnet.name
+  remote_virtual_network_id = azurerm_virtual_network.jokes_vnet_se.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+}
+
+resource "azurerm_virtual_network_peering" "sweden_to_norway" {
+  name                      = "sweden-to-norway"
+  resource_group_name       = azurerm_resource_group.jokes_rg.name
+  virtual_network_name      = azurerm_virtual_network.jokes_vnet_se.name
+  remote_virtual_network_id = azurerm_virtual_network.jokes_vnet.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+}
+
 # ─── Kong NSG ─────────────────────────────────────────────────────────────────
 
 resource "azurerm_network_security_group" "kong_nsg" {
@@ -135,20 +247,8 @@ resource "azurerm_network_security_group" "services_nsg" {
   }
 
   security_rule {
-    name                       = "allow-rabbitmq-management"
-    priority                   = 130
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "15672"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
     name                       = "allow-moderate-service"
-    priority                   = 140
+    priority                   = 130
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -340,7 +440,7 @@ resource "azurerm_linux_virtual_machine" "joke_vm" {
   }
 }
 
-# ─── Submit VM (RabbitMQ + submit app + moderate app) ─────────────────────────
+# ─── Submit VM (submit app only) ──────────────────────────────────────────────
 
 resource "azurerm_network_interface" "submit_nic" {
   name                = "submit-nic"
@@ -412,6 +512,87 @@ resource "azurerm_linux_virtual_machine" "submit_vm" {
     destination = "/home/${var.admin_username}/submit"
   }
 
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /home/${var.admin_username}/docker-az-tf-swap.sh",
+      "sudo /home/${var.admin_username}/docker-az-tf-swap.sh",
+      "cd /home/${var.admin_username} && sudo docker compose up -d --build"
+    ]
+  }
+}
+
+# ─── Moderate VM (moderate app only) ──────────────────────────────────────────
+
+resource "azurerm_network_interface" "moderate_nic" {
+  name                = "moderate-nic"
+  location            = "swedencentral"
+  resource_group_name = azurerm_resource_group.jokes_rg.name
+
+  ip_configuration {
+    name                          = "moderate-ip-config"
+    subnet_id                     = azurerm_subnet.jokes_subnet_se.id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.1.1.12"
+  }
+}
+
+resource "azurerm_network_interface_security_group_association" "moderate_nic_nsg" {
+  network_interface_id      = azurerm_network_interface.moderate_nic.id
+  network_security_group_id = azurerm_network_security_group.services_nsg_se.id
+}
+
+resource "azurerm_linux_virtual_machine" "moderate_vm" {
+  name                            = "moderate-vm"
+  location                        = "swedencentral"
+  resource_group_name             = azurerm_resource_group.jokes_rg.name
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+  network_interface_ids           = [azurerm_network_interface.moderate_nic.id]
+
+  depends_on = [
+    azurerm_virtual_network_peering.norway_to_sweden,
+    azurerm_virtual_network_peering.sweden_to_norway
+  ]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
+  }
+
+  connection {
+    type                = "ssh"
+    host                = "10.1.1.12"
+    user                = var.admin_username
+    password            = var.admin_password
+    bastion_host        = azurerm_public_ip.kong_pip.ip_address
+    bastion_user        = var.admin_username
+    bastion_password    = var.admin_password
+  }
+
+  provisioner "file" {
+    source      = "../kong/docker-az-tf-swap.sh"
+    destination = "/home/${var.admin_username}/docker-az-tf-swap.sh"
+  }
+
+  provisioner "file" {
+    source      = "../compose-moderate.yaml"
+    destination = "/home/${var.admin_username}/compose.yaml"
+  }
+
+  provisioner "file" {
+    source      = "../.env"
+    destination = "/home/${var.admin_username}/.env"
+  }
+
   provisioner "file" {
     source      = "../moderate"
     destination = "/home/${var.admin_username}/moderate"
@@ -421,7 +602,88 @@ resource "azurerm_linux_virtual_machine" "submit_vm" {
     inline = [
       "chmod +x /home/${var.admin_username}/docker-az-tf-swap.sh",
       "sudo /home/${var.admin_username}/docker-az-tf-swap.sh",
-      "cd /home/${var.admin_username} && sudo docker compose up -d --build"
+      "cd /home/${var.admin_username} && sudo docker compose up -d"
+    ]
+  }
+}
+
+# ─── RabbitMQ VM (RabbitMQ broker only) ───────────────────────────────────────
+
+resource "azurerm_network_interface" "rabbitmq_nic" {
+  name                = "rabbitmq-nic"
+  location            = "swedencentral"
+  resource_group_name = azurerm_resource_group.jokes_rg.name
+
+  ip_configuration {
+    name                          = "rabbitmq-ip-config"
+    subnet_id                     = azurerm_subnet.jokes_subnet_se.id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.1.1.13"
+  }
+}
+
+resource "azurerm_network_interface_security_group_association" "rabbitmq_nic_nsg" {
+  network_interface_id      = azurerm_network_interface.rabbitmq_nic.id
+  network_security_group_id = azurerm_network_security_group.rabbitmq_nsg_se.id
+}
+
+resource "azurerm_linux_virtual_machine" "rabbitmq_vm" {
+  name                            = "rabbitmq-vm"
+  location                        = "swedencentral"
+  resource_group_name             = azurerm_resource_group.jokes_rg.name
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+  network_interface_ids           = [azurerm_network_interface.rabbitmq_nic.id]
+
+  depends_on = [
+    azurerm_virtual_network_peering.norway_to_sweden,
+    azurerm_virtual_network_peering.sweden_to_norway
+  ]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
+  }
+
+  connection {
+    type                = "ssh"
+    host                = "10.1.1.13"
+    user                = var.admin_username
+    password            = var.admin_password
+    bastion_host        = azurerm_public_ip.kong_pip.ip_address
+    bastion_user        = var.admin_username
+    bastion_password    = var.admin_password
+  }
+
+  provisioner "file" {
+    source      = "../kong/docker-az-tf-swap.sh"
+    destination = "/home/${var.admin_username}/docker-az-tf-swap.sh"
+  }
+
+  provisioner "file" {
+    source      = "../compose-rabbitmq.yaml"
+    destination = "/home/${var.admin_username}/compose.yaml"
+  }
+
+  provisioner "file" {
+    source      = "../.env"
+    destination = "/home/${var.admin_username}/.env"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /home/${var.admin_username}/docker-az-tf-swap.sh",
+      "sudo /home/${var.admin_username}/docker-az-tf-swap.sh",
+      "cd /home/${var.admin_username} && sudo docker compose up -d"
     ]
   }
 }

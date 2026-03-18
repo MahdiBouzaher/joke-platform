@@ -58,6 +58,14 @@ services:
           - POST
         strip_path: false
 
+      # Submit CSS route
+      - name: submit-css
+        paths:
+          - /submit.css
+        methods:
+          - GET
+        strip_path: false
+
       # Submit docs route
       - name: submit-docs
         paths:
@@ -68,7 +76,7 @@ services:
 
   # Moderate app service
   - name: moderate-service
-    url: http://10.0.1.11:4300
+    url: http://10.1.1.12:4300
     routes:
       # Moderate HTML route
       - name: moderate-html

@@ -1,195 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Joke Moderator</title>
-  <link rel="stylesheet" href="moderate.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Joke Moderator — Jokes Central</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="moderate.css">
 </head>
 <body>
-  <div id="userBar">
-    <span id="userEmail">Loading...</span>
-    <a href="/logout">Logout</a>
-  </div>
-  <div class="container">
-    <h1>Joke Moderator</h1>
-
-    <div id="noJoke" class="status-msg" style="display:none">
-      No jokes pending — checking every second...
-    </div>
-
-    <div id="jokePanel" style="display:none">
-      <div class="field-group">
-        <label>Setup</label>
-        <input id="setup" type="text" />
-      </div>
-      <div class="field-group">
-        <label>Punchline</label>
-        <input id="punchline" type="text" />
-      </div>
-
-      <div class="field-group">
-        <label>Type</label>
-        <div class="submitted-type-row">
-          <span class="submitted-label">Submitted as:</span>
-          <span id="submittedType" class="submitted-badge"></span>
+    <header>
+        <div class="logo">Jokes<span> Central</span></div>
+        <div class="user-bar">
+            <span id="userEmail">Loading...</span>
+            <a href="/logout" class="logout-link">Logout</a>
         </div>
-        <div class="type-toggle">
-          <label class="toggle-option">
-            <input type="radio" name="typeMode" value="existing" id="modeExisting" />
-            Use existing type
-          </label>
-          <label class="toggle-option">
-            <input type="radio" name="typeMode" value="new" id="modeNew" />
-            Add new type
-          </label>
+    </header>
+
+    <main>
+        <div class="hero">
+            <h1>Joke <em>Moderator</em></h1>
+            <p>Review, edit, and approve submitted jokes</p>
         </div>
-        <div id="existingTypePanel">
-          <select id="typeSelect"></select>
+
+        <div class="card">
+            <div id="noJoke" class="status-msg" style="display:none">
+                <span class="pulse"></span>No jokes pending — checking every second...
+            </div>
+
+            <div id="jokePanel" style="display:none">
+                <div class="field-group">
+                    <label>Setup</label>
+                    <input id="setup" type="text" />
+                </div>
+
+                <div class="field-group">
+                    <label>Punchline</label>
+                    <input id="punchline" type="text" />
+                </div>
+
+                <hr class="divider" />
+
+                <div class="field-group">
+                    <label>Type</label>
+                    <div class="submitted-type-row">
+                        <span class="submitted-label">Submitted as:</span>
+                        <span id="submittedType" class="submitted-badge"></span>
+                    </div>
+                    <div class="type-toggle">
+                        <label class="toggle-option">
+                            <input type="radio" name="typeMode" value="existing" id="modeExisting" />
+                            Use existing type
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="typeMode" value="new" id="modeNew" />
+                            Add new type
+                        </label>
+                    </div>
+                    <div id="existingTypePanel">
+                        <select id="typeSelect"></select>
+                    </div>
+                    <div id="newTypePanel" style="display:none">
+                        <input id="newType" type="text" placeholder="Enter new type..." />
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="approveBtn" class="btn btn-approve">✓ Approve</button>
+                    <button id="rejectBtn" class="btn btn-reject">✕ Reject</button>
+                </div>
+                <div id="feedback" class="feedback"></div>
+            </div>
         </div>
-        <div id="newTypePanel" style="display:none">
-          <input id="newType" type="text" placeholder="Enter new type..." />
-        </div>
-      </div>
+    </main>
 
-      <div class="actions">
-        <button id="approveBtn" class="btn btn-approve">Approve</button>
-        <button id="rejectBtn" class="btn btn-reject">Reject</button>
-      </div>
-      <div id="feedback" class="feedback"></div>
-    </div>
-  </div>
+    <script>
+        (async function () {
+            const jokePanel = document.getElementById('jokePanel');
+            const noJoke = document.getElementById('noJoke');
+            const setupEl = document.getElementById('setup');
+            const punchlineEl = document.getElementById('punchline');
+            const typeSelect = document.getElementById('typeSelect');
+            const newTypeEl = document.getElementById('newType');
+            const approveBtn = document.getElementById('approveBtn');
+            const rejectBtn = document.getElementById('rejectBtn');
+            const feedback = document.getElementById('feedback');
+            const submittedTypeEl = document.getElementById('submittedType');
+            const modeExisting = document.getElementById('modeExisting');
+            const modeNew = document.getElementById('modeNew');
+            const existingTypePanel = document.getElementById('existingTypePanel');
+            const newTypePanel = document.getElementById('newTypePanel');
 
-  <script>
-    (async function () {
-      const jokePanel = document.getElementById('jokePanel');
-      const noJoke = document.getElementById('noJoke');
-      const setupEl = document.getElementById('setup');
-      const punchlineEl = document.getElementById('punchline');
-      const typeSelect = document.getElementById('typeSelect');
-      const newTypeEl = document.getElementById('newType');
-      const approveBtn = document.getElementById('approveBtn');
-      const rejectBtn = document.getElementById('rejectBtn');
-      const feedback = document.getElementById('feedback');
-      const submittedTypeEl = document.getElementById('submittedType');
-      const modeExisting = document.getElementById('modeExisting');
-      const modeNew = document.getElementById('modeNew');
-      const existingTypePanel = document.getElementById('existingTypePanel');
-      const newTypePanel = document.getElementById('newTypePanel');
+            let pollInterval = null;
 
-      let pollInterval = null;
+            function setMode(mode) {
+                if (mode === 'existing') {
+                    modeExisting.checked = true;
+                    existingTypePanel.style.display = 'block';
+                    newTypePanel.style.display = 'none';
+                } else {
+                    modeNew.checked = true;
+                    existingTypePanel.style.display = 'none';
+                    newTypePanel.style.display = 'block';
+                }
+            }
 
-      function setMode(mode) {
-        if (mode === 'existing') {
-          modeExisting.checked = true;
-          existingTypePanel.style.display = 'block';
-          newTypePanel.style.display = 'none';
-        } else {
-          modeNew.checked = true;
-          existingTypePanel.style.display = 'none';
-          newTypePanel.style.display = 'block';
-        }
-      }
+            function setFeedback(msg, type) {
+                feedback.textContent = msg;
+                feedback.className = 'feedback ' + (type || '');
+            }
 
-      modeExisting.addEventListener('change', () => setMode('existing'));
-      modeNew.addEventListener('change', () => setMode('new'));
+            modeExisting.addEventListener('change', () => setMode('existing'));
+            modeNew.addEventListener('change', () => setMode('new'));
 
-      async function loadTypes() {
-        try {
-          const res = await fetch('/types');
-          if (res.status === 401) return;
-          const types = await res.json();
-          const current = typeSelect.value;
-          typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
-          if (current) typeSelect.value = current;
-        } catch (_) {}
-      }
+            async function loadTypes() {
+                try {
+                    const res = await fetch('/types');
+                    if (res.status === 401) return;
+                    const types = await res.json();
+                    const current = typeSelect.value;
+                    typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+                    if (current) typeSelect.value = current;
+                } catch (_) {}
+            }
 
-      async function loadJoke() {
-        try {
-          const res = await fetch('/moderate');
-          if (res.status === 401) { window.location.reload(); return; }
-          const data = await res.json();
-          if (data.available === false) {
-            showNoJoke();
-          } else {
-            showJoke(data);
-          }
-        } catch (_) {
-          showNoJoke();
-        }
-      }
+            async function loadJoke() {
+                try {
+                    const res = await fetch('/moderate');
+                    if (res.status === 401) { window.location.reload(); return; }
+                    const data = await res.json();
+                    if (data.available === false) { showNoJoke(); } else { showJoke(data); }
+                } catch (_) { showNoJoke(); }
+            }
 
-      function showJoke(data) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-        setupEl.value = data.setup || '';
-        punchlineEl.value = data.punchline || '';
+            function showJoke(data) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+                setupEl.value = data.setup || '';
+                punchlineEl.value = data.punchline || '';
+                const submittedType = data.type || '';
+                submittedTypeEl.textContent = submittedType;
+                const existsInDropdown = [...typeSelect.options].some(o => o.value === submittedType);
+                if (existsInDropdown) {
+                    typeSelect.value = submittedType;
+                    newTypeEl.value = '';
+                    setMode('existing');
+                } else {
+                    newTypeEl.value = submittedType;
+                    setMode('new');
+                }
+                setFeedback('');
+                jokePanel.style.display = 'block';
+                noJoke.style.display = 'none';
+            }
 
-        const submittedType = data.type || '';
-        submittedTypeEl.textContent = submittedType;
+            function showNoJoke() {
+                jokePanel.style.display = 'none';
+                noJoke.style.display = 'block';
+                if (!pollInterval) pollInterval = setInterval(loadJoke, 1000);
+            }
 
-        const existsInDropdown = [...typeSelect.options].some(o => o.value === submittedType);
-        if (existsInDropdown) {
-          typeSelect.value = submittedType;
-          newTypeEl.value = '';
-          setMode('existing');
-        } else {
-          newTypeEl.value = submittedType;
-          setMode('new');
-        }
+            approveBtn.addEventListener('click', async () => {
+                const type = modeNew.checked ? newTypeEl.value.trim() : typeSelect.value;
+                if (!type) { setFeedback('Please select or enter a type.', 'err'); return; }
+                try {
+                    const res = await fetch('/moderated', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ setup: setupEl.value, punchline: punchlineEl.value, type })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        setFeedback('Joke approved ✓', 'ok');
+                        await loadTypes();
+                        setTimeout(loadJoke, 800);
+                    }
+                } catch (_) { setFeedback('Failed to approve.', 'err'); }
+            });
 
-        feedback.textContent = '';
-        jokePanel.style.display = 'block';
-        noJoke.style.display = 'none';
-      }
+            rejectBtn.addEventListener('click', () => {
+                setFeedback('Joke rejected.', 'err');
+                setTimeout(loadJoke, 800);
+            });
 
-      function showNoJoke() {
-        jokePanel.style.display = 'none';
-        noJoke.style.display = 'block';
-        if (!pollInterval) {
-          pollInterval = setInterval(loadJoke, 1000);
-        }
-      }
+            try {
+                const me = await fetch('/me');
+                if (me.ok) {
+                    const { email } = await me.json();
+                    document.getElementById('userEmail').textContent = email;
+                }
+            } catch (_) {}
 
-      approveBtn.addEventListener('click', async () => {
-        const type = modeNew.checked ? newTypeEl.value.trim() : typeSelect.value;
-        if (!type) { feedback.textContent = 'Please select or enter a type.'; return; }
-        try {
-          const res = await fetch('/moderated', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ setup: setupEl.value, punchline: punchlineEl.value, type })
-          });
-          const data = await res.json();
-          if (data.success) {
-            feedback.textContent = 'Joke approved.';
             await loadTypes();
-            setTimeout(loadJoke, 800);
-          }
-        } catch (_) {
-          feedback.textContent = 'Failed to approve.';
-        }
-      });
-
-      rejectBtn.addEventListener('click', () => {
-        feedback.textContent = 'Joke rejected.';
-        setTimeout(loadJoke, 800);
-      });
-
-      // Show logged-in user
-      try {
-        const me = await fetch('/me');
-        if (me.ok) {
-          const { email } = await me.json();
-          document.getElementById('userEmail').textContent = email;
-        }
-      } catch (_) {}
-
-      await loadTypes();
-      await loadJoke();
-      setInterval(loadTypes, 5000);
-    })();
-  </script>
+            await loadJoke();
+            setInterval(loadTypes, 5000);
+        })();
+    </script>
 </body>
 </html>
