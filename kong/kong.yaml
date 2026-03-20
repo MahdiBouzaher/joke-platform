@@ -2,11 +2,11 @@
 _format_version: "3.0"
 
 services:
-  # Joke API service
+  # Joke API service — the authoritative source, routes exposed at root level
   - name: joke-service
-    url: http://10.0.1.10:4000 
+    url: http://10.0.1.10:4000
     routes:
-      # Root route
+      # Web UI
       - name: joke-root
         paths:
           - /
@@ -14,7 +14,7 @@ services:
           - GET
         strip_path: false
 
-      # Types route
+      # API routes
       - name: joke-types
         paths:
           - /types
@@ -22,7 +22,6 @@ services:
           - GET
         strip_path: false
 
-      # Jokes query route
       - name: joke-query
         paths:
           - /jokes
@@ -30,7 +29,6 @@ services:
           - GET
         strip_path: false
 
-      # Joke by type route
       - name: joke-by-type
         paths:
           - /joke
@@ -38,11 +36,13 @@ services:
           - GET
         strip_path: false
 
-  # Submit app service
+  # Submit service — versioned prefix /submit-ms-v1 strips to expose real endpoints
+  # e.g. /submit-ms-v1/submit -> POST /submit
+  #      /submit-ms-v1/types  -> GET  /types
   - name: submit-service
     url: http://10.0.1.11:4200
     routes:
-      # Submit HTML route
+      # Web UI entry point
       - name: submit-html
         paths:
           - /submit-form
@@ -50,15 +50,7 @@ services:
           - GET
         strip_path: true
 
-      # Submit POST route
-      - name: submit-post
-        paths:
-          - /submit
-        methods:
-          - POST
-        strip_path: false
-
-      # Submit CSS route
+      # Static files
       - name: submit-css
         paths:
           - /submit.css
@@ -66,7 +58,7 @@ services:
           - GET
         strip_path: false
 
-      # Submit docs route
+      # Swagger docs
       - name: submit-docs
         paths:
           - /docs
@@ -74,11 +66,23 @@ services:
           - GET
         strip_path: false
 
-  # Moderate app service
+      # Versioned prefix route — covers all submit API endpoints
+      # strip_path removes /submit-ms-v1 before forwarding to the service
+      - name: submit-service-v1
+        paths:
+          - /submit-ms-v1
+        methods:
+          - GET
+          - POST
+        strip_path: true
+
+  # Moderate service — versioned prefix /mod-ms-v1 strips to expose real endpoints
+  # e.g. /mod-ms-v1/moderate -> GET  /moderate
+  #      /mod-ms-v1/types    -> GET  /types
   - name: moderate-service
     url: http://10.1.1.12:4300
     routes:
-      # Moderate HTML route
+      # Web UI entry point (Auth0 returnTo lands here after login)
       - name: moderate-html
         paths:
           - /moderate-form
@@ -86,31 +90,7 @@ services:
           - GET
         strip_path: true
 
-      # Moderate GET route
-      - name: moderate-get
-        paths:
-          - /moderate
-        methods:
-          - GET
-        strip_path: false
-
-      # Moderated POST route
-      - name: moderated-post
-        paths:
-          - /moderated
-        methods:
-          - POST
-        strip_path: false
-
-      # Moderate types route
-      - name: moderate-types
-        paths:
-          - /moderate/types
-        methods:
-          - GET
-        strip_path: true
-
-      # OIDC callback route (Auth0 redirects here after login)
+      # OIDC routes — kept at root so Auth0 config needs no changes
       - name: moderate-callback
         paths:
           - /callback
@@ -119,7 +99,6 @@ services:
           - POST
         strip_path: false
 
-      # OIDC logout route
       - name: moderate-logout
         paths:
           - /logout
@@ -127,7 +106,6 @@ services:
           - GET
         strip_path: false
 
-      # Logged-in user info
       - name: moderate-me
         paths:
           - /me
@@ -135,10 +113,20 @@ services:
           - GET
         strip_path: false
 
+      # Versioned prefix route — covers all moderate API endpoints
+      # strip_path removes /mod-ms-v1 before forwarding to the service
+      - name: moderate-service-v1
+        paths:
+          - /mod-ms-v1
+        methods:
+          - GET
+          - POST
+        strip_path: true
+
 
 # Plugins
 plugins:
-  # Rate limiting plugin
+  # Rate limiting on the joke-by-type endpoint
   - name: rate-limiting
     route: joke-by-type
     config:
