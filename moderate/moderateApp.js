@@ -1,6 +1,6 @@
 // Moderate service with OIDC authentication
 
-// Imports — CD pipeline trigger
+// Imports - CD pipeline trigger
 const express = require('express');
 const path = require('path');
 const amqp = require('amqplib');
@@ -112,12 +112,12 @@ app.use(auth({
   }
 }));
 
-// Custom logout — redirect back to moderate form so login is triggered immediately
+// Custom logout - redirect back to moderate form so login is triggered immediately
 app.get('/logout', (req, res) => {
   res.oidc.logout({ returnTo: `${process.env.BASE_URL}/moderate-form` });
 });
 
-// Middleware for API routes — returns 401 instead of redirecting to Auth0
+// Middleware for API routes - returns 401 instead of redirecting to Auth0
 // This prevents multiple concurrent auth flows which cause state mismatch errors
 function requiresAuthAPI(req, res, next) {
   if (!req.oidc.isAuthenticated()) {
@@ -134,7 +134,7 @@ app.get('/me', requiresAuthAPI, (req, res) => {
   res.json({ email: req.oidc.user.email });
 });
 
-// Main page — explicitly set returnTo so after login user lands back on /moderate-form
+// Main page - explicitly set returnTo so after login user lands back on /moderate-form
 app.get('/', (req, res) => {
   if (!req.oidc.isAuthenticated()) {
     return res.oidc.login({ returnTo: '/moderate-form' });

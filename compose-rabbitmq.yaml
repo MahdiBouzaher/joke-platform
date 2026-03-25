@@ -1,5 +1,5 @@
 
-# Docker Compose for RabbitMQ VM — RabbitMQ broker only
+# Docker Compose for RabbitMQ VM - RabbitMQ broker only
 services:
 
   # RabbitMQ broker

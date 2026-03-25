@@ -1,4 +1,4 @@
-// etl.js — Extract Transform Load: reads moderated jokes from queue, writes to DB
+// etl.js - Extract Transform Load: reads moderated jokes from queue, writes to DB
 const amqp     = require('amqplib');
 const mysql    = require('mysql2/promise');
 const mongoose = require('mongoose');

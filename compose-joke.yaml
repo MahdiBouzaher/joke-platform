@@ -1,8 +1,8 @@
 
-# Docker Compose for Joke VM — joke app, database, ETL
+# Docker Compose for Joke VM - joke app, database, ETL
 services:
 
-  # MySQL database — only starts with: docker compose --profile mysql up
+  # MySQL database - only starts with: docker compose --profile mysql up
   mysql:
     profiles: ["mysql"]
     image: mysql:8
@@ -24,7 +24,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # MongoDB database — only starts with: docker compose --profile mongo up
+  # MongoDB database - only starts with: docker compose --profile mongo up
   mongodb:
     profiles: ["mongo"]
     image: mongo:8

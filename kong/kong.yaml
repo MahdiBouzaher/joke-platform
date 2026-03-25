@@ -2,7 +2,7 @@
 _format_version: "3.0"
 
 services:
-  # Joke API service — the authoritative source, routes exposed at root level
+  # Joke API service - the authoritative source, routes exposed at root level
   - name: joke-service
     url: http://10.0.1.10:4000
     routes:

@@ -17,7 +17,7 @@
     <main>
         <div class="hero">
             <h1>Got a <em>joke?</em></h1>
-            <p>Share it with the world — if it's good enough.</p>
+            <p>Share it with the world - if it's good enough.</p>
         </div>
 
         <div class="form-card">
@@ -47,7 +47,7 @@
                 </div>
                 <div id="existingTypePanel">
                     <select id="type">
-                        <option value="">— Select a type —</option>
+                        <option value="">Select a type</option>
                     </select>
                 </div>
                 <div id="newTypePanel" style="display:none;">
@@ -87,7 +87,7 @@
                 const res = await fetch('/types');
                 const types = await res.json();
                 const select = document.getElementById('type');
-                select.innerHTML = '<option value="">— Select a type —</option>';
+                select.innerHTML = '<option value="">Select a type</option>';
                 types.forEach(t => {
                     const o = document.createElement('option');
                     o.value = t; o.textContent = t;

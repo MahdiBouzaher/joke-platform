@@ -1,4 +1,4 @@
-// mongo-seed.js — run by mongosh via docker-entrypoint-initdb.d on first startup
+// mongo-seed.js - run by mongosh via docker-entrypoint-initdb.d on first startup
 db = db.getSiblingDB('jokes_db');
 
 db.types.drop();

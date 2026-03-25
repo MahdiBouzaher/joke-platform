@@ -1,5 +1,5 @@
 
-# Docker Compose for Moderate VM — moderate app only
+# Docker Compose for Moderate VM - moderate app only
 services:
 
   # Joke moderate app

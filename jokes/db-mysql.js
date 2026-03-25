@@ -1,4 +1,4 @@
-// db-mysql.js — MySQL implementation (moved from db.js)
+// db-mysql.js - MySQL implementation (moved from db.js)
 const mysql = require('mysql2/promise');
 
 let pool;

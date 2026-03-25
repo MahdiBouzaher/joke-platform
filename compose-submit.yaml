@@ -1,5 +1,5 @@
 
-# Docker Compose for Submit VM — submit app only
+# Docker Compose for Submit VM - submit app only
 services:
 
   # Joke submit app

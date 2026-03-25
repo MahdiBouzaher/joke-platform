@@ -1,4 +1,4 @@
-// db-mongo.js — MongoDB implementation using Mongoose
+// db-mongo.js - MongoDB implementation using Mongoose
 const mongoose = require('mongoose');
 
 let connected = false;
