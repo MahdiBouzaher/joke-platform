@@ -112,7 +112,7 @@ app.use(auth({
   }
 }));
 
-// Custom logout - redirect back to moderate form so login is triggered immediately
+// Custom logout redirect back to moderate form so login is triggered immediately
 app.get('/logout', (req, res) => {
   res.oidc.logout({ returnTo: `${process.env.BASE_URL}/moderate-form` });
 });
@@ -134,7 +134,7 @@ app.get('/me', requiresAuthAPI, (req, res) => {
   res.json({ email: req.oidc.user.email });
 });
 
-// Main page - explicitly set returnTo so after login user lands back on /moderate-form
+// Main page explicitly set returnTo so after login user lands back on /moderate-form
 app.get('/', (req, res) => {
   if (!req.oidc.isAuthenticated()) {
     return res.oidc.login({ returnTo: '/moderate-form' });
@@ -202,4 +202,4 @@ app.listen(APP_PORT, () => {
   console.log(`Moderate app running on port ${APP_PORT}`);
 });
 
-
+// Test comment to trigger CD pipeline
