@@ -110,6 +110,10 @@ app.post('/submit', async (req, res) => {
 
   const jokeType = newType && newType.trim() !== '' ? newType : type;
 
+  if (!channel) {
+    return res.status(503).json({ error: 'Message queue unavailable, please try again shortly' });
+  }
+
   try {
     // Send joke to queue
     channel.sendToQueue('submitted_jokes', Buffer.from(JSON.stringify({ setup, punchline, type: jokeType })), {

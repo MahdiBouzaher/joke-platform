@@ -85,7 +85,9 @@
         async function loadTypes() {
             try {
                 const res = await fetch('/types');
+                if (!res.ok) throw new Error('Service unavailable');
                 const types = await res.json();
+                if (!Array.isArray(types)) throw new Error('Invalid response');
                 const select = document.getElementById('type');
                 select.innerHTML = '<option value="">Select a type</option>';
                 types.forEach(t => {
@@ -93,8 +95,13 @@
                     o.value = t; o.textContent = t;
                     select.appendChild(o);
                 });
+                // If we recovered and user is in new-type mode due to prior failure, switch back
+                if (types.length > 0 && !modeNew.checked) {
+                    setMode('existing');
+                }
             } catch {
-                showMessage('Failed to load joke types', 'error');
+                showMessage('Joke service offline – you can still submit using a new type below', 'error');
+                setMode('new');
             }
         }
 
