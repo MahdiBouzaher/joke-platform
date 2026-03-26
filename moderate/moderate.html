@@ -115,7 +115,7 @@
 
             async function loadTypes() {
                 try {
-                    const res = await fetch('/types');
+                    const res = await fetch('/mod-ms-v1/types');
                     if (res.status === 401) return;
                     const types = await res.json();
                     const current = typeSelect.value;
@@ -126,7 +126,7 @@
 
             async function loadJoke() {
                 try {
-                    const res = await fetch('/moderate');
+                    const res = await fetch('/mod-ms-v1/moderate');
                     if (res.status === 401) { window.location.reload(); return; }
                     const data = await res.json();
                     if (data.available === false) { showNoJoke(); } else { showJoke(data); }
@@ -164,7 +164,7 @@
                 const type = modeNew.checked ? newTypeEl.value.trim() : typeSelect.value;
                 if (!type) { setFeedback('Please select or enter a type.', 'err'); return; }
                 try {
-                    const res = await fetch('/moderated', {
+                    const res = await fetch('/mod-ms-v1/moderated', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ setup: setupEl.value, punchline: punchlineEl.value, type })

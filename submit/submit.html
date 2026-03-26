@@ -84,7 +84,7 @@
 
         async function loadTypes() {
             try {
-                const res = await fetch('/types');
+                const res = await fetch('/submit-ms-v1/types');
                 if (!res.ok) throw new Error('Service unavailable');
                 const types = await res.json();
                 if (!Array.isArray(types)) throw new Error('Invalid response');
@@ -119,7 +119,7 @@
             btn.textContent = 'Submitting...';
 
             try {
-                const res = await fetch('/submit', {
+                const res = await fetch('/submit-ms-v1/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ setup, punchline, type, newType })
